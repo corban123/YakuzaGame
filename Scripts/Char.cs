@@ -5,6 +5,7 @@ public class Char : MonoBehaviour {
 
     //Random Shit
     public static int Katana = 0;
+	public static int Gun = 0;
     public bool isStand;
     public bool isLeft;
     public bool isRight;

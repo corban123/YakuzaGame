@@ -10,6 +10,7 @@ public class Player : Char
 	public AudioClip jumping;
 	public AudioClip Walk;
 	public AudioClip Punch;
+	public AudioClip Swing;
 	public int maxHealth = 30;
 	public int curHealth = 30;
 	public GameObject target;
@@ -19,6 +20,8 @@ public class Player : Char
 	
 	private double deadZone = .10;
 	public GameObject Fist;
+	public GameObject Sword;
+	private tk2dSpriteAnimator anim;
 
 	
 	
@@ -49,6 +52,7 @@ public class Player : Char
 	
     void Awake()
     {
+		anim = GetComponent<tk2dSpriteAnimator>();
         CharacterController = gameObject.GetComponent("CharacterController")
         as CharacterController;
 
@@ -69,31 +73,43 @@ public class Player : Char
         isDown = false;
         isPunch = false;
         Fist.SetActive(false);
+		Sword.SetActive(false);
+		
 
 
         //Again, Defining Directions
-        if (Input.GetKey(KeyCode.A))
+        if (isDown == false && isUp == false && isRight == false && isLeft == false && !anim.IsPlaying("Fist Punch 1") && !anim.IsPlaying("Fist Punch 2") && !anim.IsPlaying("Sword Swing left" ) && !anim.IsPlaying ("Sword Swing right")){
+			isStand = true;
+			isDown = false;
+			isUp = false;
+		}
+		if (Input.GetAxis("Horizontal") < -deadZone)
         {
             isLeft = true;
             facingDir = 1;
+			isStand = false;
         }
-        if (Input.GetKey(KeyCode.D))
+        if (Input.GetAxis("Horizontal") > deadZone)
         {
             isRight = true;
             facingDir = 2;
+			isStand = false;
         }
-        if (Input.GetKeyDown(KeyCode.W))
+        if (MoveVector.y < TerminalVelocity && Input.GetKeyDown(KeyCode.W))
         {
             isUp = true;
+			isStand = false;
         }
-        if (Input.GetKey(KeyCode.S))
+        if (MoveVector.y < -1)
         {
             isDown = true;
+			isUp = false;
+			isStand = false;
         }
-        if (Input.GetKey(KeyCode.J) && CharacterController.isGrounded)
+        if (Input.GetKeyDown(KeyCode.J) && CharacterController.isGrounded)
         {
             isPunch = true;
-            Fist.SetActive(true);
+			isStand = false;
         }
         if (Input.GetKey(KeyCode.Alpha1))
         {
@@ -105,7 +121,7 @@ public class Player : Char
             isSword = true;
             isFist = false;
         }
-		if (Input.GetKey (KeyCode.Alpha3)){
+		if (Input.GetKey (KeyCode.Alpha3) && Gun == 1){
 			isSword = false;
 			isFist = false;
 			isGun = true;
@@ -114,37 +130,58 @@ public class Player : Char
 	
 		
 		//Sounds!
-        if (isLeft && CharacterController.isGrounded || isRight && CharacterController.isGrounded)
+        if (anim.IsPlaying("Fist walk 2") || anim.IsPlaying("Fist walk 1") || anim.IsPlaying ("Sword Walk left") || anim.IsPlaying ("Sword walk right") || anim.IsPlaying("Gun walk left") || anim.IsPlaying("Gun walk right"))
         {
+			
 			if (audio.clip != Walk){
 				audio.Stop ();
 				audio.clip = Walk;
+				audio.volume = .5f;
+				audio.pitch = .5f;
 			}
 			if (!audio.isPlaying){
 				audio.Play();
 			}
 		}
-        else if (isUp)
+        else if (anim.IsPlaying("Fist Jump 2") || anim.IsPlaying("Fist Jump 1") || anim.IsPlaying ("Sword Jump Left") || anim.IsPlaying("Sword Jump Right") || anim.IsPlaying("Gun jump left") || anim.IsPlaying("Gun jump right"))
         {
 			if(audio.clip != jumping){
 				audio.Stop ();
 				audio.clip = jumping;
+				audio.volume = .8f;
+				audio.pitch = .5f;
 			}
 			if (!audio.isPlaying){
-				audio.Play ();
+				audio.Stop ();
+				audio.Play();
 			}
-            if (!CharacterController.isGrounded)
-                audio.Play();
 		}
 		
-		else if (isPunch && isFist == true){
+		else if (anim.IsPlaying("Fist Punch 1")  && isLeft == false|| anim.IsPlaying("Fist Punch 2") && isRight == false){
+			Fist.SetActive(true);
 			if( audio.clip != Punch){
 				audio.Stop();
 				audio.clip = Punch;
+				audio.volume = .8f;
+				audio.pitch = .28f;
 			}
 			if(!audio.isPlaying){
 				audio.Play();
 			}
+		}
+		else if (anim.IsPlaying ("Sword Swing left")  && isLeft == false|| anim.IsPlaying("Sword Swing right") && isRight == false ){
+			Sword.SetActive(true);
+			if(audio.clip != Swing){
+				audio.Stop ();
+				audio.clip = Swing;
+				audio.volume = .8f;
+				audio.pitch = 1f;
+			}
+			if(!audio.isPlaying){
+				audio.Play();
+			}
+		
+		
 		}
 		else{
 			audio.Stop ();
@@ -228,9 +265,15 @@ public class Player : Char
         }
 
     }
-	void OnTriggerEnter(Collider katana){
-		Destroy(katana.gameObject);
-		Katana = 1;
+	void OnTriggerEnter(Collider weapon){
+		if(weapon.gameObject.tag == "katana"){
+			Destroy(weapon.gameObject);
+			Katana = 1;
+		}
+		if (weapon.gameObject.tag == "gun"){
+		Destroy (weapon.gameObject);
+		Gun = 1;
+		}
 	}
 
 }
