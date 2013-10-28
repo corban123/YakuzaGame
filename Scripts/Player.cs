@@ -11,24 +11,35 @@ public class Player : Char
 	public AudioClip Walk;
 	public AudioClip Punch;
 	public AudioClip Swing;
+    public AudioClip Shoot;
 	public int maxHealth = 30;
 	public int curHealth = 30;
+    public int JumpAllowed = 1;
+    public int JumpTimes = 0;
 	public GameObject target;
     public Vector3 MoveVector { get; set; }
     public float VerticalVelocity { get; set; }
-	
-	
+	public int BulletSpeed = 30;
+
 	private double deadZone = .10;
 	public GameObject Fist;
 	public GameObject Sword;
-	private tk2dSpriteAnimator anim;
+	public Rigidbody Bullet;
 
+	private tk2dSpriteAnimator anim;
+	private Renderer bulletRenderer;
+	private Vector3 spawnPoint;
+	public GUIText referencetotext;
+	
+	
+	//will's GUI stuff
+	public int weapon = 1; //to let GUI know what weapon is currently selected
+	public bool hasGun = false;
+	public bool hasSword = false;
 	
 	
 
     public CharacterController CharacterController;
-	
-	
     // Use this for initialization
 	
 	public void AddjustCurrentHealth(int adj)
@@ -48,6 +59,10 @@ public class Player : Char
         {
             maxHealth = 1;
         }
+		if(curHealth <= 0){
+			Destroy(this.gameObject);
+			Application.LoadLevel("GameOver");
+		}
     }
 	
     void Awake()
@@ -55,6 +70,7 @@ public class Player : Char
 		anim = GetComponent<tk2dSpriteAnimator>();
         CharacterController = gameObject.GetComponent("CharacterController")
         as CharacterController;
+        bulletRenderer = GameObject.FindGameObjectWithTag("bullet").renderer;
 
     }
 
@@ -64,6 +80,11 @@ public class Player : Char
         checkMovement();
         HandleActionInput();
         processMovement();
+		
+		if(curHealth <= 0){
+			Destroy(this.gameObject);
+			Application.LoadLevel("GameOver");
+		}
 
 
         isStand = false;
@@ -74,9 +95,18 @@ public class Player : Char
         isPunch = false;
         Fist.SetActive(false);
 		Sword.SetActive(false);
+
+
+        if (CharacterController.isGrounded)
+        {
+            JumpTimes = 0;
+        }
+
+        if (Input.GetKeyDown(KeyCode.W))
+        {
+            JumpTimes++;
+        }
 		
-
-
         //Again, Defining Directions
         if (isDown == false && isUp == false && isRight == false && isLeft == false && !anim.IsPlaying("Fist Punch 1") && !anim.IsPlaying("Fist Punch 2") && !anim.IsPlaying("Sword Swing left" ) && !anim.IsPlaying ("Sword Swing right")){
 			isStand = true;
@@ -115,21 +145,28 @@ public class Player : Char
         {
             isFist = true;
             isSword = false;
+			weapon = 1;
         }
         if (Input.GetKey(KeyCode.Alpha2) && Katana == 1)
         {
             isSword = true;
             isFist = false;
+			weapon = 2;
         }
 		if (Input.GetKey (KeyCode.Alpha3) && Gun == 1){
 			isSword = false;
 			isFist = false;
 			isGun = true;
+			weapon = 3;
+		}
+		if(Input.GetKeyDown(KeyCode.N)){
+			curHealth -= 10;
 		}
 	
 	
 		
 		//Sounds!
+		#region Sounds
         if (anim.IsPlaying("Fist walk 2") || anim.IsPlaying("Fist walk 1") || anim.IsPlaying ("Sword Walk left") || anim.IsPlaying ("Sword walk right") || anim.IsPlaying("Gun walk left") || anim.IsPlaying("Gun walk right"))
         {
 			
@@ -143,20 +180,24 @@ public class Player : Char
 				audio.Play();
 			}
 		}
+		
         else if (anim.IsPlaying("Fist Jump 2") || anim.IsPlaying("Fist Jump 1") || anim.IsPlaying ("Sword Jump Left") || anim.IsPlaying("Sword Jump Right") || anim.IsPlaying("Gun jump left") || anim.IsPlaying("Gun jump right"))
         {
-			if(audio.clip != jumping){
-				audio.Stop ();
-				audio.clip = jumping;
-				audio.volume = .8f;
-				audio.pitch = .5f;
-			}
-			if (!audio.isPlaying){
-				audio.Stop ();
-				audio.Play();
-			}
+			if (JumpTimes <= JumpAllowed){
+                if (audio.clip != jumping)
+                {
+                    audio.Stop();
+                    audio.clip = jumping;
+                    audio.volume = .8f;
+                    audio.pitch = .5f;
+                }
+                if (!audio.isPlaying)
+                {
+                    audio.Stop();
+                    audio.Play();
+                }
+            }
 		}
-		
 		else if (anim.IsPlaying("Fist Punch 1")  && isLeft == false|| anim.IsPlaying("Fist Punch 2") && isRight == false){
 			Fist.SetActive(true);
 			if( audio.clip != Punch){
@@ -180,13 +221,49 @@ public class Player : Char
 			if(!audio.isPlaying){
 				audio.Play();
 			}
-		
-		
 		}
+		else if (anim.IsPlaying("Gun shoot right")){
+            if (audio.clip != Shoot)
+            {
+                audio.Stop();
+                audio.clip = Shoot;
+                audio.volume = .8f;
+                audio.pitch = .5f;
+            }
+            if (!audio.isPlaying)
+            {
+                audio.Play();
+            }
+            bulletRenderer.enabled = true;
+			Rigidbody clone;
+			clone = Instantiate(Bullet,transform.position + Vector3.right*2 + (Vector3.up/3) + (Vector3.up/20), Quaternion.Euler(0, 0, 0)) as Rigidbody;
+			clone.velocity = transform.TransformDirection (Vector3.right * BulletSpeed);
+			Destroy(clone.gameObject, 1);
+			}
+		else if (anim.IsPlaying ("Gun shoot left")){
+            if (audio.clip != Shoot)
+            {
+                audio.Stop();
+                audio.clip = Shoot;
+                audio.volume = 1f;
+                audio.pitch = .5f;
+            }
+            if (!audio.isPlaying)
+            {
+                audio.Play();
+            }
+            bulletRenderer.enabled = true;
+            Rigidbody clone;
+			clone = Instantiate(Bullet,transform.position + Vector3.left* 2 + (Vector3.up/3) + (Vector3.up/20), Quaternion.Euler(0, 0, 0)) as Rigidbody;
+			clone.velocity = transform.TransformDirection (Vector3.left * BulletSpeed);
+			Destroy(clone.gameObject, 1);
+		}
+	
+		
 		else{
 			audio.Stop ();
 		}
-	
+		#endregion
 
     }
 		
@@ -265,16 +342,51 @@ public class Player : Char
         }
 
     }
+	
 	void OnTriggerEnter(Collider weapon){
 		if(weapon.gameObject.tag == "katana"){
 			Destroy(weapon.gameObject);
 			Katana = 1;
+			hasSword = true;
 		}
 		if (weapon.gameObject.tag == "gun"){
-		Destroy (weapon.gameObject);
-		Gun = 1;
+			Destroy (weapon.gameObject);
+			Gun = 1;
+			hasGun = true;
+		}
+		if(weapon.gameObject.tag == "Trigger1"){
+		referencetotext.text ="USE W,A,S,D TO MOVE";
+		}
+		if(weapon.gameObject.tag == "Trigger2"){
+		referencetotext.text ="PRESS J TO PUNCH THE BOX";
+		}
+		if(weapon.gameObject.tag == "Trigger3"){
+			referencetotext.text ="PRESS 2 TO PULL OUT YOUR SWORD";
+		}	
+ 		if(weapon.gameObject.tag == "Trigger4"){
+			referencetotext.text ="PRESS J TO SLASH";
+		}
+		if(weapon.gameObject.tag == "Trigger5"){
+			referencetotext.text ="PRESS J TO SHOOT";
+		}
+		if(weapon.gameObject.tag == "Trigger6"){
+			referencetotext.text ="CHECKPOINT";
+		}
+		if(weapon.gameObject.tag == "Trigger7"){
+			referencetotext.text ="QUICKLY, GET YOUR GUN!";
+		}
+		if(weapon.gameObject.tag == "Trigger8"){
+			referencetotext.text ="PRESS 3 TO PULL OUT YOUR GUN";
+		}
+		if(weapon.gameObject.tag == "Ending"){
+			Application.LoadLevel("Next Scene");
 		}
 	}
-
+		
+	
+	
+	void OnTriggerExit(Collider hit){
+    	referencetotext.text ="";
+	}
 }
 // CharacterControllers are stupid. 

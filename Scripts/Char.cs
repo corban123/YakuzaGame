@@ -20,6 +20,7 @@ public class Char : MonoBehaviour {
     public float JumpSpeed = 6f;
     public float MoveSpeed = 10f;
     public float RunSpeed = 15;
+	public float bulletSpeed = 10;
 
 
     public bool isFist = true;

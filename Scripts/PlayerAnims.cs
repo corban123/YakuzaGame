@@ -277,6 +277,20 @@ public class PlayerAnims: MonoBehaviour {
 			
                 
         }
+			if (character.isPunch && character.facingDir == 1){
+				if(!anim.IsPlaying ("Gun shoot left")){
+				anim.Play ("Gun shoot left");
+					character.isPunch = true;
+					character.isStand = false;
+		}
+	}
+			if (character.isPunch && character.facingDir == 2){
+				if(!anim.IsPlaying ("Gun shoot right")){
+				anim.Play ("Gun shoot right");
+					character.isPunch = true;
+					character.isStand = false;
+				}
+			}
 		}
 	}
 }
